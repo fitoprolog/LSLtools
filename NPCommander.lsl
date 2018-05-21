@@ -3,6 +3,7 @@ integer selected   = 0;
 integer ignore     = 1; 
 integer flying     = 0;
 integer sayChannel = 0;
+integer followMode = 0; 
 key npc = NULL_KEY; 
 key user = NULL_KEY; 
 key sittedOn = NULL_KEY; 
@@ -107,7 +108,16 @@ process_input(string input, key uid)
         osNpcMoveToTarget( npc, lastPos , 0);
         return;
     }
-   
+    if (cmd == "#follow")
+    {
+        followMode = 1;
+        return;
+    }
+    if (cmd == "#nofollow")
+    {
+        followMode = 0;
+        return;
+    }
     if (cmd == "#stand")
     {
         sittedOn = NULL_KEY;
@@ -155,7 +165,7 @@ process_input(string input, key uid)
     if (cmd == "#come" || cmd == "#fcome" || cmd == "#rcome")
     {
         lastPos  =  (vector)llList2String( llGetObjectDetails( uid , [OBJECT_POS]),0);
-        lastPos +=  <0.1, 0.1, 0>;
+        lastPos +=  <0.3, 0.3, 0>;
         
         if (cmd == "#come")
           osNpcMoveToTarget( npc, lastPos , OS_NPC_NO_FLY);
@@ -244,6 +254,22 @@ default
         
         httpHandler = llHTTPRequest( URLCommander +inputBuffer , [] , "" );
         inputBuffer = "";
+        if (followMode ){
+           vector a = (vector)llList2String( llGetObjectDetails( npc  , [OBJECT_POS]),0); 
+           vector u = (vector)llList2String( llGetObjectDetails( user , [OBJECT_POS]),0); 
+           integer userStatus = llGetAgentInfo(user);
+           if ( llVecDist(a, u) > 0.42)
+           {
+             osAvatarStopAnimation(npc, animation);
+
+             if(userStatus & AGENT_FLYING)  
+               osNpcMoveToTarget( npc, u + < 0.3,0.3,0> , 0);
+             else if(userStatus & AGENT_ALWAYS_RUN )
+               osNpcMoveToTarget( npc, u + < 0.3,0.3,0> ,  OS_NPC_RUNNING | OS_NPC_NO_FLY);
+             else 
+               osNpcMoveToTarget( npc, u + < 0.3,0.3,0> , OS_NPC_NO_FLY);  
+           }
+        }
     }
     
     http_response(key request_id, integer status, list metadata, string body)
